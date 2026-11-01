@@ -28,10 +28,7 @@ jobs:
         run: |
           mkdir -p www
           if [ -f "logo.png" ]; then cp logo.png www/logo.png; fi
-          if [ -f "index.html" ]; then
-            cp index.html www/index.html
-          elif [ -f "index.html" ]; then
-            cp index.html www/index.html
+          if [ -f "index.html" ]; then cp index.html www/index.html
           else
             cp *.html www/index.html 2>/dev/null || true
           fi
