@@ -49,20 +49,9 @@ jobs:
 
       - name: Configure Android Permissions & Network Security
         run: |
-          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
-          
-          # Add necessary network and storage permissions
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET" />' $MANIFEST_PATH
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' $MANIFEST_PATH
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />' $MANIFEST_PATH
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />' $MANIFEST_PATH
-          
-          # Enable cleartext traffic, hardware acceleration, and attach network config
-          sed -i 's/<application/<application android:usesCleartextTraffic="true" android:hardwareAccelerated="true" android:networkSecurityConfig="@xml/network_security_config"/g' $MANIFEST_PATH
-
-          # Create network_security_config.xml so WebView does not block TMDb API calls
+          # 1. Create network_security_config.xml
           mkdir -p android/app/src/main/res/xml
-          cat <<EOF > android/app/src/main/res/xml/network_security_config.xml
+          cat <<'EOF' > android/app/src/main/res/xml/network_security_config.xml
           <?xml version="1.0" encoding="utf-8"?>
           <network-security-config>
               <base-config cleartextTrafficPermitted="true">
@@ -72,6 +61,41 @@ jobs:
                   </trust-anchors>
               </base-config>
           </network-security-config>
+          EOF
+
+          # 2. Update AndroidManifest.xml safely using Python
+          python3 - <<'EOF'
+          import re
+
+          manifest_path = "android/app/src/main/AndroidManifest.xml"
+          with open(manifest_path, "r", encoding="utf-8") as f:
+              content = f.read()
+
+          permissions = [
+              '<uses-permission android:name="android.permission.INTERNET" />',
+              '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />',
+              '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />',
+              '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />'
+          ]
+
+          # Insert permissions before <application
+          perm_block = "\n    " + "\n    ".join(permissions) + "\n"
+          if 'android.permission.INTERNET' not in content:
+              content = content.replace("<application", perm_block + "    <application", 1)
+
+          # Ensure networkSecurityConfig & cleartext traffic attributes
+          if 'android:networkSecurityConfig' not in content:
+              content = re.sub(
+                  r'<application(\s+)',
+                  r'<application android:usesCleartextTraffic="true" android:networkSecurityConfig="@xml/network_security_config" android:hardwareAccelerated="true"\1',
+                  content,
+                  count=1
+              )
+
+          with open(manifest_path, "w", encoding="utf-8") as f:
+              f.write(content)
+
+          print("AndroidManifest.xml successfully updated.")
           EOF
 
       - name: Generate App Icons
