@@ -18,10 +18,10 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Prepare Web Directory
@@ -66,7 +66,6 @@ jobs:
 
       - name: Fix Gradle Build & SDK Versions
         run: |
-          # Safely update variables.gradle for min, compile, and target SDKs
           VAR_FILE="android/variables.gradle"
           if [ -f "$VAR_FILE" ]; then
             sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' $VAR_FILE || true
