@@ -45,17 +45,19 @@ jobs:
       - name: Generate Android Project
         run: npx cap add android
 
-      - name: Upgrade Gradle Version to 8.5 for JDK 21
+      - name: Upgrade AGP & Gradle for JDK 21
         run: |
+          # 1. Gradle 8.5 set karein
           GRADLE_PROP="android/gradle/wrapper/gradle-wrapper.properties"
           if [ -f "$GRADLE_PROP" ]; then
             sed -i 's/distributionUrl=.*$/distributionUrl=https\:\/\/services.gradle.org\/distributions\/gradle-8.5-bin.zip/g' $GRADLE_PROP
           fi
-
-      - name: Fix Gradle Java 21 Compatibility
-        run: |
-          echo "org.gradle.java.installations.auto-detect=false" >> android/gradle.properties
-          echo "org.gradle.java.installations.paths=$JAVA_HOME" >> android/gradle.properties
+          
+          # 2. Android Gradle Plugin 8.0.0 ko badal kar 8.2.1 karein (JDK 21 jlink fix)
+          ROOT_GRADLE="android/build.gradle"
+          if [ -f "$ROOT_GRADLE" ]; then
+            sed -i 's/com.android.tools.build:gradle:[0-9.]*/com.android.tools.build:gradle:8.2.1/g' $ROOT_GRADLE
+          fi
 
       - name: Add Permissions to AndroidManifest.xml
         run: |
@@ -89,7 +91,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew clean assembleDebug
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
