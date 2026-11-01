@@ -1,44 +1,98 @@
-name: Build Android APK
+name: Build Android APK (Capacitor)
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v3
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
 
-    - name: Install Dependencies
-      run: npm install
+      - name: Prepare Web Directory
+        run: |
+          mkdir -p www
+          if [ -f "logo.png" ]; then cp logo.png www/logo.png; fi
+          if [ -f "index.html" ]; then
+            cp index.html www/index.html
+          else
+            cp *.html www/index.html 2>/dev/null || true
+          fi
 
-    - name: Add Android Platform
-      run: npx cap add android
+      - name: Install Dependencies
+        run: |
+          npm install
 
-    - name: Sync Capacitor
-      run: npx cap sync android
+      - name: Initialize Capacitor
+        run: |
+          npx cap init "MediaRadar" "com.mediaradar.app" --web-dir www
 
-    - name: Build Debug APK
-      run: |
-        cd android
-        ./gradlew assembleDebug
+      - name: Generate Android Project
+        run: npx cap add android
 
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: mediaradar-apk
-        path: android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Add Permissions to AndroidManifest.xml
+        run: |
+          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />' $MANIFEST_PATH
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />' $MANIFEST_PATH
+
+      - name: Generate App Icons
+        run: |
+          mkdir -p resources
+          if [ -f "logo.png" ]; then
+            cp logo.png resources/icon.png
+            npx capacitor-assets generate --android
+          elif [ -f "www/logo.png" ]; then
+            cp www/logo.png resources/icon.png
+            npx capacitor-assets generate --android
+          else
+            echo "logo.png not found, skipping icon generation."
+          fi
+
+      - name: Fix Gradle Build Issues
+        run: |
+          sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' android/variables.gradle
+          
+          cat <<EOF >> android/app/build.gradle
+          
+          configurations.all {
+              resolutionStrategy {
+                  force 'androidx.core:core:1.13.1'
+                  force 'androidx.core:core-ktx:1.13.1'
+              }
+          }
+          
+          dependencies {
+              constraints {
+                  implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22')
+                  implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22')
+              }
+          }
+          EOF
+
+      - name: Build Android APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mediaradar-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
