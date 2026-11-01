@@ -1,6 +1,6 @@
 {
   "appId": "com.mediaradar.app",
   "appName": "MediaRadar",
-  "webDir": ".",
+  "webDir": "www",
   "bundledWebRuntime": false
 }

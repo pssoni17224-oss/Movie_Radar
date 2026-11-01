@@ -1230,15 +1230,13 @@
                 const title = currentActiveItem.title || currentActiveItem.name || 'Movie / Show';
                 const year = (currentActiveItem.release_date || currentActiveItem.first_air_date || '').substring(0, 4);
                 const rating = currentActiveItem.vote_average ? `${currentActiveItem.vote_average.toFixed(1)}/10` : 'N/A';
-                const shareText = `Check out "${title}" (${year}) on MediaRadar! IMDb/TMDb: ${rating}
-Plot: ${currentActiveItem.overview || 'Explore trailers, cast, audio dubs & streaming OTT platforms.'}`;
+                const shareText = `Check out "${title}" (${year}) on MediaRadar! IMDb/TMDb: ${rating}\nPlot: ${currentActiveItem.overview || 'Explore trailers, cast, audio dubs & streaming OTT platforms.'}`;
                 
                 if (navigator.share) {
                     try { await navigator.share({ title: `${title} - MediaRadar`, text: shareText, url: window.location.href }); } catch (err) {}
                 } else {
                     try {
-                        await navigator.clipboard.writeText(`${shareText}
-${window.location.href}`);
+                        await navigator.clipboard.writeText(`${shareText}\n${window.location.href}`);
                         shareBtnText.textContent = 'Copied!';
                         setTimeout(() => { shareBtnText.textContent = 'Share'; }, 2000);
                     } catch (e) { alert('Link copied to clipboard!'); }
