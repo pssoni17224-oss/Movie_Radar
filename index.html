@@ -1660,24 +1660,50 @@
             posterImg.onerror = () => { posterImg.src = fallbackPoster; };
 
             const dubsContainer = document.getElementById('dubbedLanguagesContainer');
-            dubsContainer.innerHTML = '';
-            const dubbedSet = new Set();
-            (data.translations?.translations || []).forEach(t => {
-                if (t.iso_639_1 && t.iso_639_1 !== origCode) {
-                    try { dubbedSet.add(languageNames.of(t.iso_639_1)); } catch(e) {}
-                }
-            });
-            const dubList = Array.from(dubbedSet).slice(0, 10);
-            if (dubList.length > 0) {
-                dubList.forEach(lang => {
-                    const tag = document.createElement('span');
-                    tag.className = 'tag-badge';
-                    tag.textContent = lang;
-                    dubsContainer.appendChild(tag);
-                });
-            } else {
-                dubsContainer.innerHTML = '<span style="font-size:12px; color:var(--text-secondary);">Original audio only</span>';
+dubsContainer.innerHTML = '';
+const dubbedSet = new Set();
+
+// 1. Collect from Spoken Languages (Original & Secondary native dubs)
+if (Array.isArray(data.spoken_languages)) {
+    data.spoken_languages.forEach(sl => {
+        if (sl.iso_639_1 && sl.iso_639_1 !== origCode) {
+            try {
+                dubbedSet.add(languageNames.of(sl.iso_639_1) || sl.english_name || sl.name);
+            } catch(e) {
+                if (sl.english_name) dubbedSet.add(sl.english_name);
             }
+        }
+    });
+}
+
+// 2. Collect from Translations (Dubs / Subtitled localized audio)
+if (data.translations && Array.isArray(data.translations.translations)) {
+    data.translations.translations.forEach(t => {
+        const code = t.iso_639_1;
+        if (code && code !== origCode) {
+            try {
+                const name = languageNames.of(code) || t.english_name || t.name;
+                if (name) dubbedSet.add(name);
+            } catch(e) {
+                if (t.english_name) dubbedSet.add(t.english_name);
+            }
+        }
+    });
+}
+
+// 3. Render all available languages (Sorted Alphabetically)
+const dubList = Array.from(dubbedSet).sort();
+
+if (dubList.length > 0) {
+    dubList.forEach(lang => {
+        const tag = document.createElement('span');
+        tag.className = 'tag-badge';
+        tag.textContent = lang;
+        dubsContainer.appendChild(tag);
+    });
+} else {
+    dubsContainer.innerHTML = '<span style="font-size:12px; color:var(--text-secondary);">Original audio only (No dubs reported)</span>';
+}
 
             const dates = extractReleaseDates(data, mediaType);
             safeSetText('theatricalRelease', dates.theatrical);
