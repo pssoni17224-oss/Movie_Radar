@@ -45,12 +45,11 @@ jobs:
       - name: Generate Android Project
         run: npx cap add android
 
-      - name: Upgrade Gradle Version for JDK 21
+      - name: Upgrade Gradle Version to 8.5 for JDK 21
         run: |
           GRADLE_PROP="android/gradle/wrapper/gradle-wrapper.properties"
           if [ -f "$GRADLE_PROP" ]; then
-            sed -i 's/gradle-8.0.2-bin.zip/gradle-8.5-bin.zip/g' $GRADLE_PROP
-            sed -i 's/gradle-8.[0-9]*-bin.zip/gradle-8.5-bin.zip/g' $GRADLE_PROP
+            sed -i 's/distributionUrl=.*$/distributionUrl=https\:\/\/services.gradle.org\/distributions\/gradle-8.5-bin.zip/g' $GRADLE_PROP
           fi
 
       - name: Add Permissions to AndroidManifest.xml
@@ -77,8 +76,8 @@ jobs:
           VAR_FILE="android/variables.gradle"
           if [ -f "$VAR_FILE" ]; then
             sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 24/g' $VAR_FILE || true
-            sed -i 's/compileSdkVersion = [0-9]*/compileSdkVersion = 36/g' $VAR_FILE || true
-            sed -i 's/targetSdkVersion = [0-9]*/targetSdkVersion = 36/g' $VAR_FILE || true
+            sed -i 's/compileSdkVersion = [0-9]*/compileSdkVersion = 34/g' $VAR_FILE || true
+            sed -i 's/targetSdkVersion = [0-9]*/targetSdkVersion = 34/g' $VAR_FILE || true
           fi
 
       - name: Build Android APK
