@@ -28,7 +28,9 @@ jobs:
         run: |
           mkdir -p www
           if [ -f "logo.png" ]; then cp logo.png www/logo.png; fi
-          if [ -f "index.html" ]; then
+          if [ -f "Final-2.html" ]; then
+            cp Final-2.html www/index.html
+          elif [ -f "index.html" ]; then
             cp index.html www/index.html
           else
             cp *.html www/index.html 2>/dev/null || true
@@ -38,7 +40,7 @@ jobs:
         run: |
           rm -f package.json package-lock.json
           npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/app
+          npm install @capacitor/core @capacitor/cli @capacitor/android @capacitor/app @capacitor/local-notifications
 
       - name: Initialize Capacitor
         run: |
@@ -63,7 +65,7 @@ jobs:
           </network-security-config>
           EOF
 
-          # 2. Update AndroidManifest.xml safely using Python
+          # 2. Update AndroidManifest.xml with Calendar and Notification Permissions
           python3 - <<'EOF'
           import re
 
@@ -74,12 +76,20 @@ jobs:
           permissions = [
               '<uses-permission android:name="android.permission.INTERNET" />',
               '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />',
+              '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />',
+              '<uses-permission android:name="android.permission.READ_CALENDAR" />',
+              '<uses-permission android:name="android.permission.WRITE_CALENDAR" />',
+              '<uses-permission android:name="android.permission.VIBRATE" />',
+              '<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />',
               '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />',
               '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />'
           ]
 
           # Insert permissions before <application
-          perm_block = "\n    " + "\n    ".join(permissions) + "\n"
+          perm_block = "
+    " + "
+    ".join(permissions) + "
+"
           if 'android.permission.INTERNET' not in content:
               content = content.replace("<application", perm_block + "    <application", 1)
 
@@ -87,7 +97,7 @@ jobs:
           if 'android:networkSecurityConfig' not in content:
               content = re.sub(
                   r'<application(\s+)',
-                  r'<application android:usesCleartextTraffic="true" android:networkSecurityConfig="@xml/network_security_config" android:hardwareAccelerated="true"\1',
+                  r'<application android:usesCleartextTraffic="true" android:networkSecurityConfig="@xml/network_security_config" android:hardwareAccelerated="true"',
                   content,
                   count=1
               )
@@ -95,7 +105,7 @@ jobs:
           with open(manifest_path, "w", encoding="utf-8") as f:
               f.write(content)
 
-          print("AndroidManifest.xml successfully updated.")
+          print("AndroidManifest.xml successfully updated with Calendar and Notification permissions.")
           EOF
 
       - name: Generate App Icons
