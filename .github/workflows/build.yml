@@ -47,14 +47,32 @@ jobs:
       - name: Generate Android Project
         run: npx cap add android
 
-      - name: Add Permissions and Hardware Acceleration to AndroidManifest.xml
+      - name: Configure Android Permissions & Network Security
         run: |
           MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
+          
+          # Add necessary network and storage permissions
           sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET" />' $MANIFEST_PATH
           sed -i '/<application/i \    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />' $MANIFEST_PATH
           sed -i '/<application/i \    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />' $MANIFEST_PATH
           sed -i '/<application/i \    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />' $MANIFEST_PATH
-          sed -i 's/<application/<application android:usesCleartextTraffic="true" android:hardwareAccelerated="true"/g' $MANIFEST_PATH
+          
+          # Enable cleartext traffic, hardware acceleration, and attach network config
+          sed -i 's/<application/<application android:usesCleartextTraffic="true" android:hardwareAccelerated="true" android:networkSecurityConfig="@xml/network_security_config"/g' $MANIFEST_PATH
+
+          # Create network_security_config.xml so WebView does not block TMDb API calls
+          mkdir -p android/app/src/main/res/xml
+          cat <<EOF > android/app/src/main/res/xml/network_security_config.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <network-security-config>
+              <base-config cleartextTrafficPermitted="true">
+                  <trust-anchors>
+                      <certificates src="system" />
+                      <certificates src="user" />
+                  </trust-anchors>
+              </base-config>
+          </network-security-config>
+          EOF
 
       - name: Generate App Icons
         run: |
