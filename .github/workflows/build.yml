@@ -73,6 +73,11 @@ jobs:
             sed -i 's/targetSdkVersion = [0-9]*/targetSdkVersion = 34/g' $VAR_FILE || true
           fi
 
+      - name: Upgrade Gradle Wrapper
+        run: |
+          cd android
+          ./gradlew wrapper --gradle-version 8.5
+
       - name: Build Android APK
         run: |
           cd android
