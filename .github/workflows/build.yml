@@ -52,6 +52,11 @@ jobs:
             sed -i 's/distributionUrl=.*$/distributionUrl=https\:\/\/services.gradle.org\/distributions\/gradle-8.5-bin.zip/g' $GRADLE_PROP
           fi
 
+      - name: Fix Gradle Java 21 Compatibility
+        run: |
+          echo "org.gradle.java.installations.auto-detect=false" >> android/gradle.properties
+          echo "org.gradle.java.installations.paths=$JAVA_HOME" >> android/gradle.properties
+
       - name: Add Permissions to AndroidManifest.xml
         run: |
           MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
